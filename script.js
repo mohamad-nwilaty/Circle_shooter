@@ -197,8 +197,6 @@ function bulletCollisionWEnemy(b){
                 }
                 enemies.splice(i,1);
                 score += 100;
-                
-                console.log(enemies[i].x)
                 return true ;
             }
         }

@@ -5,6 +5,7 @@ const height = innerHeight
 canvas.width = width;
 canvas.height = height ;
 let gameState = false ;
+let enemyInterval ; // this is to reset the interval after dying
 let music = true ;
 let score = 0 ;
 let bestScore = localStorage.getItem("bestScore") || 0 ;
@@ -161,7 +162,7 @@ function animate(){
     p.Draw();
     drawScore()
     checkGameOver();
-
+    console.log(enemies.length)
     if(gameState){
         requestAnimationFrame(animate) 
     }
@@ -179,7 +180,10 @@ function checkOutofBounds(b){
 }
 
 function spawnEnimies(){
-    setInterval(()=>{
+    if(enemyInterval){ // before starting reset the interval
+        clearInterval(enemyInterval);
+    }
+    enemyInterval = setInterval(()=>{ // setting the interval id
         let x ;
         let y ;
         let randius = Math.floor(Math.random() * 30) + 15
@@ -234,7 +238,7 @@ function checkGameOver() {
         if (distance < enemies[i].radius + p.radius) {
             // Collision detected, game over
             gameState = false;
-            console.log("Game Over");
+            clearInterval(enemyInterval) ;
             deathscreen()
             break;
         }

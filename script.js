@@ -4,10 +4,13 @@ const width = innerWidth
 const height = innerHeight
 canvas.width = width;
 canvas.height = height ;
-let gameState = true ;
+let gameState = false ;
+let music = true ;
 let score = 0 ;
 let bestScore = localStorage.getItem("bestScore") || 0 ;
 const enemyColors = ["blue", "grey" , "red" , "yellow" , "purple" , "green" , "deeppink" , "aqua" , "chartreuse"];
+let lazerSound = new Audio("lazer.mp3");
+let soundTrack = new Audio("groove.mp3");
 let bullets = [];
 let enemies = [];
 let particles = [];
@@ -28,17 +31,18 @@ class Player{
     }
 }
 class Enemy{
-    constructor(x , y , angle , radius){
+    constructor(x , y , angle , radius , health){
         this.x = x ;
         this.y = y ;
         this.radius = radius ;
-        this.angle = angle
+        this.doubleHealth = health ;
+        this.angle = angle ;
         this.color = enemyColors[Math.floor(Math.random()*enemyColors.length)]
-        this.speed =  1 / radius * 100; // Adjust the multiplier as needed
+        this.speed =  1 / radius * 80; // Adjust the multiplier as needed
     }
     update(){
         this.x += this.speed * Math.cos(this.angle);
-        this.y += this.speed * Math.sin(this.angle);
+        this.y += this.speed * Math.sin(this.angle) ;
     }
     Draw(){
         ctx.beginPath();
@@ -96,15 +100,16 @@ class particle{
         this.update()
     }
 }
-
-
+soundTrack.loop = true
 const p = new Player();
-spawnEnimies();
-requestAnimationFrame(animate) ;
+document.fonts.load('10pt "pixel-font"').then(() => {
+    startScreen(); // Your function call after the font is loaded
+});
 
 window.addEventListener("click" , (e)=>{
     if(!gameState){
         gameState = true ;
+        spawnEnimies();
         bullets = [];
         enemies = [];
         particles = [] ;
@@ -113,12 +118,20 @@ window.addEventListener("click" , (e)=>{
     }
     const b = new Bullet(p.x, p.y , Math.atan2(p.y - e.offsetY ,p.x - e.offsetX));
     bullets.push(b);
+    lazerSound.play();
+})
+window.addEventListener("keypress" , (e)=>{
+    if(e.key === "m"){
+        soundTrack.pause()
+        music = !music
+    }
 })
 
 function clearCanvas(){
     ctx.clearRect(0,0,width,height);
 }
 function animate(){
+    if(music) soundTrack.play()
     drawBackground()
     for(let i=0 ; i<bullets.length ; i++){
         bullets[i].Draw();
@@ -149,8 +162,6 @@ function animate(){
     drawScore()
     checkGameOver();
 
-    console.log(particles.length)
-
     if(gameState){
         requestAnimationFrame(animate) 
     }
@@ -171,7 +182,7 @@ function spawnEnimies(){
     setInterval(()=>{
         let x ;
         let y ;
-        let randius = Math.floor(Math.random() * 10) + 25
+        let randius = Math.floor(Math.random() * 30) + 15
         if(Math.random() > 0.5){
             x = Math.random() > 0.5 ? 0 - randius : width + randius ;
             y = Math.random() * height ;
@@ -181,21 +192,30 @@ function spawnEnimies(){
             y = Math.random() > 0.5 ? 0 -randius : height + randius ;
         }
         let angle = Math.atan2(p.y - y , p.x - x);
-        let e =  new Enemy(x,y,angle , randius);
+        let doubleHealth = randius > 30 ? true : false ;
+        let e =  new Enemy(x,y,angle , randius , doubleHealth);
         enemies.push(e);
-    
-    } ,500)
+    } ,700)
 }
 function bulletCollisionWEnemy(b){
     
     for(let i=0 ; i<enemies.length ; i++){
         if(b.x < enemies[i].x + enemies[i].radius && b.x > enemies[i].x - enemies[i].radius  ){
             if(b.y < enemies[i].y + enemies[i].radius && b.y > enemies[i].y - enemies[i].radius){
+                
                 // spawn particles for dying enemies
                 for(let j=0 ; j<enemies[i].radius *2 ; j++){
                     particles.push(new particle(enemies[i].x , enemies[i].y , {x:Math.random() - 0.5 , y:Math.random() - 0.5} ,enemies[i].color))
                 }
-                enemies.splice(i,1);
+                if(! enemies[i].doubleHealth){
+                    enemies.splice(i,1);
+                }
+                else{
+                    enemies[i].doubleHealth = false ;
+                    enemies[i].speed = 0.3 ;
+                    enemies[i].radius -= 20
+                }
+                
                 score += 100;
                 return true ;
             }
@@ -242,4 +262,15 @@ function deathscreen(){
     ctx.fillText(`score: ${score}` , width/2 , height/2 -70);
     ctx.fillText(`best score: ${bestScore}` , width/2 , height/2 );
     ctx.fillText("click to restart" , width/2 , height/2 +70 );
+}
+function startScreen(){
+    ctx.fillStyle = "black"
+    ctx.fillRect(0,0,width,height);
+    ctx.font = "60px  pixel-font";
+    console.log(ctx.font)
+    ctx.textAlign = "center";
+    ctx.fillStyle = "white";
+    ctx.fillText(`Click to start ` , width/2 , height/2 -70);
+    ctx.fillText(`best score: ${bestScore}` , width/2 , height/2 );
+    ctx.fillText(`press M to mute` , width/2 , height/2 + 70 );
 }
